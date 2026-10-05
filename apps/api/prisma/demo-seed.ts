@@ -1752,7 +1752,7 @@ export async function seedDemoData() {
   console.log(`   - R&R Cases: ${totalRandrCreated}`);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   seedDemoData()
     .catch((e) => {
       console.error('❌ Error during demo seed execution:', e);

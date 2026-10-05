@@ -3,6 +3,8 @@ import {
   Logger,
   UnauthorizedException,
   NotFoundException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -407,6 +409,58 @@ export class AuthService {
       lastLoginAt: user.lastLoginAt || null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+    };
+  }
+
+  async impersonate(adminUserId: string, targetUserId: string) {
+    // 1. Verify the requesting user is a SUPER_ADMIN
+    const adminUser = await this.prisma.user.findUnique({ where: { id: adminUserId } });
+    if (!adminUser || adminUser.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Only Super Administrators can impersonate other users');
+    }
+
+    // 2. Look up target user with organization
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { organization: true },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('Target user not found');
+    }
+    if (!targetUser.isActive) {
+      throw new BadRequestException('Cannot impersonate a deactivated user');
+    }
+
+    // 3. Issue a new access token AS the target user, with impersonatedBy metadata
+    const accessPayload: JwtAccessPayload = {
+      sub: targetUser.id,
+      userId: targetUser.id,
+      accountType: targetUser.accountType,
+      role: targetUser.role,
+      organizationId: targetUser.organizationId,
+      tokenType: 'access',
+      impersonatedBy: adminUserId,
+    };
+    const accessToken = await this.jwtService.signAsync(accessPayload as Record<string, any>, {
+      secret: this.accessSecret,
+      expiresIn: this.accessExpiration as any,
+    });
+
+    // 4. Log the impersonation in audit
+    this.logger.warn(
+      `IMPERSONATION: Super Admin ${adminUser.email} (${adminUserId}) is now impersonating ${targetUser.email} (${targetUserId})`,
+    );
+
+    // 5. Return sanitized target user + access token
+    return {
+      user: this.sanitizeUser(targetUser),
+      accessToken,
+      expiresIn: this.accessExpiration,
+      impersonatedBy: {
+        id: adminUser.id,
+        email: adminUser.email,
+        fullName: adminUser.fullName,
+      },
     };
   }
 }

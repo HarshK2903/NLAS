@@ -2,22 +2,20 @@
 // NLAMS — National Land Acquisition & Management System
 // Comprehensive Domain Database Schema (PostgreSQL + PostGIS + Prisma)
 // ==============================================================================
-
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [postgis]
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  // extensions = [postgis]  // Disabled: remote Prisma Postgres does not support PostGIS
 }
 
 // ==============================================================================
 // 1. LOCKED SYSTEM ENUMS (Preserved from Steps 1–15)
 // ==============================================================================
-
 enum UserRole {
   SUPER_ADMIN
   CENTRAL_OFFICER
@@ -294,27 +292,26 @@ enum NotificationType {
 // ==============================================================================
 // 2. ORGANIZATIONS & USERS DOMAIN
 // ==============================================================================
-
 model Organization {
-  id           String             @id @default(uuid())
-  code         String?            @unique
-  name         String
-  type         OrganizationType
-  status       OrganizationStatus @default(ACTIVE)
-  state        String?
-  district     String?
-  jurisdiction Json? // Administrative boundary coordinates / metadata
-  parentId     String?
-  parent       Organization?      @relation("OrgHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children     Organization[]     @relation("OrgHierarchy")
-  isActive     Boolean            @default(true)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id               String             @id @default(uuid())
+  code             String?            @unique
+  name             String
+  type             OrganizationType
+  status           OrganizationStatus @default(ACTIVE)
+  state            String?
+  district         String?
+  jurisdiction     Json? // Administrative boundary coordinates / metadata
+  parentId         String?
+  parent           Organization?      @relation("OrgHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children         Organization[]     @relation("OrgHierarchy")
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   users            User[]
-  projects         Project[]         @relation("ImplementingAgencyProjects")
-  workflowTasks    WorkflowTask[]    @relation("AssignedOrgTasks")
-  approvalRequests ApprovalRequest[] @relation("OrgApprovalRequests")
+  projects         Project[]          @relation("ImplementingAgencyProjects")
+  workflowTasks    WorkflowTask[]     @relation("AssignedOrgTasks")
+  approvalRequests ApprovalRequest[]  @relation("OrgApprovalRequests")
 
   @@index([type])
   @@index([status])
@@ -323,21 +320,21 @@ model Organization {
 }
 
 model User {
-  id             String       @id @default(uuid())
-  email          String       @unique
-  passwordHash   String
-  fullName       String
-  phone          String?
-  accountType    AccountType  @default(GOVERNMENT_OFFICER)
-  role           UserRole
-  designation    String
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  avatarUrl      String?
-  isActive       Boolean      @default(true)
-  lastLoginAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                         String                           @id @default(uuid())
+  email                      String                           @unique
+  passwordHash               String
+  fullName                   String
+  phone                      String?
+  accountType                AccountType                      @default(GOVERNMENT_OFFICER)
+  role                       UserRole
+  designation                String
+  organizationId             String
+  organization               Organization                     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  avatarUrl                  String?
+  isActive                   Boolean                          @default(true)
+  lastLoginAt                DateTime?
+  createdAt                  DateTime                         @default(now())
+  updatedAt                  DateTime                         @updatedAt
 
   assignedTasks              WorkflowTask[]                   @relation("AssignedOfficerTasks")
   createdHistoryEvents       WorkflowHistory[]                @relation("PerformedByHistory")
@@ -407,14 +404,14 @@ model ProjectAssignment {
 }
 
 model AdministrativeArea {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String
-  state       String
-  description String?  @db.Text
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String                       @id @default(uuid())
+  code                  String                       @unique
+  name                  String
+  state                 String
+  description           String?                      @db.Text
+  active                Boolean                      @default(true)
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
 
   districts             AdministrativeAreaDistrict[]
   superAdminAssignments SuperAdminAssignment[]
@@ -492,37 +489,36 @@ model ApprovalRequest {
 // ==============================================================================
 // 3. PROJECT DOMAIN
 // ==============================================================================
-
 model Project {
-  id                       String          @id @default(uuid())
-  code                     String          @unique
+  id                       String                   @id @default(uuid())
+  code                     String                   @unique
   title                    String
-  description              String?         @db.Text
-  category                 ProjectCategory @default(HIGHWAY)
-  status                   ProjectStatus   @default(DRAFT)
+  description              String?                  @db.Text
+  category                 ProjectCategory          @default(HIGHWAY)
+  status                   ProjectStatus            @default(DRAFT)
   implementingAgencyOrgId  String
-  implementingAgencyOrg    Organization    @relation("ImplementingAgencyProjects", fields: [implementingAgencyOrgId], references: [id], onDelete: Restrict)
+  implementingAgencyOrg    Organization             @relation("ImplementingAgencyProjects", fields: [implementingAgencyOrgId], references: [id], onDelete: Restrict)
   state                    String
   districts                Json // Array of district names: string[]
-  totalAreaHectares        Decimal         @default(0.0) @db.Decimal(12, 4)
-  estimatedCompensationInr Decimal         @default(0.0) @db.Decimal(18, 2)
-  disbursedCompensationInr Decimal         @default(0.0) @db.Decimal(18, 2)
+  totalAreaHectares        Decimal                  @default(0.0) @db.Decimal(12, 4)
+  estimatedCompensationInr Decimal                  @default(0.0) @db.Decimal(18, 2)
+  disbursedCompensationInr Decimal                  @default(0.0) @db.Decimal(18, 2)
   spatialBounds            Json? // GeoJSON MultiPolygon/Polygon/LineString corridor boundary
   notifiedOn               DateTime?
   targetCompletionOn       DateTime?
   metadata                 Json?
-  isActive                 Boolean         @default(true)
-  createdAt                DateTime        @default(now())
-  updatedAt                DateTime        @updatedAt
+  isActive                 Boolean                  @default(true)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
 
-  parcels                 Parcel[]
-  documents               Document[]
-  workflowTasks           WorkflowTask[]
-  compensationAssessments CompensationAssessment[]
-  possessionRecords       PossessionRecord[]
-  randrCases              RAndRCase[]
-  affectedHouseholds      AffectedHousehold[]
-  assignments             ProjectAssignment[]
+  parcels                  Parcel[]
+  documents                Document[]
+  workflowTasks            WorkflowTask[]
+  compensationAssessments  CompensationAssessment[]
+  possessionRecords        PossessionRecord[]
+  randrCases               RAndRCase[]
+  affectedHouseholds       AffectedHousehold[]
+  assignments              ProjectAssignment[]
 
   @@index([status])
   @@index([state])
@@ -534,30 +530,29 @@ model Project {
 // ==============================================================================
 // 4. CADASTRAL PARCEL DOMAIN
 // ==============================================================================
-
 model Parcel {
-  id                      String       @id @default(uuid())
+  id                      String                   @id @default(uuid())
   surveyNumber            String
   khasraNumber            String?
   projectId               String
-  project                 Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project                 Project                  @relation(fields: [projectId], references: [id], onDelete: Restrict)
   village                 String
   tehsil                  String?
   district                String
   state                   String
-  landType                LandType     @default(AGRICULTURAL)
-  areaHectares            Decimal      @db.Decimal(12, 4)
-  status                  ParcelStatus @default(IDENTIFIED)
-  marketRateInrPerHectare Decimal      @default(0.0) @db.Decimal(14, 2)
-  compensationInr         Decimal      @default(0.0) @db.Decimal(18, 2)
-  centroidLat             Decimal?     @db.Decimal(10, 7)
-  centroidLng             Decimal?     @db.Decimal(10, 7)
+  landType                LandType                 @default(AGRICULTURAL)
+  areaHectares            Decimal                  @db.Decimal(12, 4)
+  status                  ParcelStatus             @default(IDENTIFIED)
+  marketRateInrPerHectare Decimal                  @default(0.0) @db.Decimal(14, 2)
+  compensationInr         Decimal                  @default(0.0) @db.Decimal(18, 2)
+  centroidLat             Decimal?                 @db.Decimal(10, 7)
+  centroidLng             Decimal?                 @db.Decimal(10, 7)
   spatialGeometry         Json? // Cadastral plot GeoJSON Polygon / MultiPolygon
   gisPolygonReference     String?
   metadata                Json?
-  isActive                Boolean      @default(true)
-  createdAt               DateTime     @default(now())
-  updatedAt               DateTime     @updatedAt
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   parcelLandowners        ParcelLandowner[]
   documents               Document[]
@@ -577,24 +572,23 @@ model Parcel {
 // ==============================================================================
 // 5. LANDOWNERS & OWNERSHIP DOMAIN (Normalized Explicit Join)
 // ==============================================================================
-
 model Landowner {
-  id                 String   @id @default(uuid())
+  id                 String                           @id @default(uuid())
   fullName           String
   fatherOrSpouseName String?
   aadhaarLast4       String? // Masked government identifier (non-sensitive last 4 digits only)
   village            String?
   contactPhone       String?
-  bankAccountLinked  Boolean  @default(false)
-  isVerified         Boolean  @default(false)
+  bankAccountLinked  Boolean                          @default(false)
+  isVerified         Boolean                          @default(false)
   metadata           Json?
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive           Boolean                          @default(true)
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
 
-  parcelLandowners ParcelLandowner[]
-  compensations    LandownerCompensation[]
-  transactions     CompensationPaymentTransaction[]
+  parcelLandowners   ParcelLandowner[]
+  compensations      LandownerCompensation[]
+  transactions       CompensationPaymentTransaction[]
 
   @@index([fullName])
   @@index([village])
@@ -625,7 +619,6 @@ model ParcelLandowner {
 // ==============================================================================
 // 6. DOCUMENT MANAGEMENT DOMAIN
 // ==============================================================================
-
 model Document {
   id                 String                     @id @default(uuid())
   documentNumber     String?                    @unique
@@ -658,10 +651,10 @@ model Document {
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
 
-  versions          DocumentVersion[]
-  activities        DocumentActivity[]
-  possessionNotices PossessionRecord[] @relation("PossessionNoticeDocuments")
-  possessionCerts   PossessionRecord[] @relation("PossessionCertificateDocuments")
+  versions           DocumentVersion[]
+  activities         DocumentActivity[]
+  possessionNotices  PossessionRecord[]         @relation("PossessionNoticeDocuments")
+  possessionCerts    PossessionRecord[]         @relation("PossessionCertificateDocuments")
 
   @@index([projectId])
   @@index([parcelId])
@@ -708,7 +701,6 @@ model DocumentActivity {
 // ==============================================================================
 // 7. WORKFLOW & SLA DOMAIN
 // ==============================================================================
-
 model WorkflowTask {
   id                String             @id @default(uuid())
   projectId         String
@@ -735,8 +727,8 @@ model WorkflowTask {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  history  WorkflowHistory[]
-  comments WorkflowComment[]
+  history           WorkflowHistory[]
+  comments          WorkflowComment[]
 
   @@index([projectId])
   @@index([status])
@@ -781,42 +773,41 @@ model WorkflowComment {
 // ==============================================================================
 // 8. COMPENSATION LEDGER DOMAIN
 // ==============================================================================
-
 model CompensationAssessment {
-  id                        String                       @id @default(uuid())
-  assessmentNumber          String                       @unique
+  id                        String                           @id @default(uuid())
+  assessmentNumber          String                           @unique
   projectId                 String
-  project                   Project                      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project                   Project                          @relation(fields: [projectId], references: [id], onDelete: Restrict)
   parcelId                  String
-  parcel                    Parcel                       @relation(fields: [parcelId], references: [id], onDelete: Restrict)
+  parcel                    Parcel                           @relation(fields: [parcelId], references: [id], onDelete: Restrict)
   awardId                   String?
   awardDate                 DateTime?
   awardAuthority            String?
-  assessmentStatus          CompensationAssessmentStatus @default(ASSESSMENT_PENDING)
-  paymentStatus             CompensationPaymentStatus    @default(PENDING)
-  landAreaHectares          Decimal                      @db.Decimal(12, 4)
+  assessmentStatus          CompensationAssessmentStatus     @default(ASSESSMENT_PENDING)
+  paymentStatus             CompensationPaymentStatus        @default(PENDING)
+  landAreaHectares          Decimal                          @db.Decimal(12, 4)
   landClassification        String
-  totalMarketValueInr       Decimal                      @default(0.0) @db.Decimal(18, 2)
-  solatiumAmountInr         Decimal                      @default(0.0) @db.Decimal(18, 2) // 100% solatium (Sec 30(1))
-  additionalCompensationInr Decimal                      @default(0.0) @db.Decimal(18, 2) // 12% statutory interest (Sec 30(3))
-  statutoryBenefitsInr      Decimal                      @default(0.0) @db.Decimal(18, 2) // Structures, crops, trees
-  deductionsInr             Decimal                      @default(0.0) @db.Decimal(18, 2)
-  totalAssessedAmountInr    Decimal                      @default(0.0) @db.Decimal(18, 2) // Gross Assessed
-  totalPayableAmountInr     Decimal                      @default(0.0) @db.Decimal(18, 2) // Net Payable
-  amountDisbursedInr        Decimal                      @default(0.0) @db.Decimal(18, 2)
-  amountPendingInr          Decimal                      @default(0.0) @db.Decimal(18, 2)
+  totalMarketValueInr       Decimal                          @default(0.0) @db.Decimal(18, 2)
+  solatiumAmountInr         Decimal                          @default(0.0) @db.Decimal(18, 2) // 100% solatium (Sec 30(1))
+  additionalCompensationInr Decimal                          @default(0.0) @db.Decimal(18, 2) // 12% statutory interest (Sec 30(3))
+  statutoryBenefitsInr      Decimal                          @default(0.0) @db.Decimal(18, 2) // Structures, crops, trees
+  deductionsInr             Decimal                          @default(0.0) @db.Decimal(18, 2)
+  totalAssessedAmountInr    Decimal                          @default(0.0) @db.Decimal(18, 2) // Gross Assessed
+  totalPayableAmountInr     Decimal                          @default(0.0) @db.Decimal(18, 2) // Net Payable
+  amountDisbursedInr        Decimal                          @default(0.0) @db.Decimal(18, 2)
+  amountPendingInr          Decimal                          @default(0.0) @db.Decimal(18, 2)
   assessmentDate            DateTime?
   awardDeclaredDate         DateTime?
   approvedDate              DateTime?
   assessingOfficerId        String?
-  assessingOfficer          User?                        @relation("AssessingOfficerCompensations", fields: [assessingOfficerId], references: [id], onDelete: SetNull)
+  assessingOfficer          User?                            @relation("AssessingOfficerCompensations", fields: [assessingOfficerId], references: [id], onDelete: SetNull)
   remarks                   String?
   metadata                  Json?
-  createdAt                 DateTime                     @default(now())
-  updatedAt                 DateTime                     @updatedAt
+  createdAt                 DateTime                         @default(now())
+  updatedAt                 DateTime                         @updatedAt
 
-  entitlements LandownerCompensation[]
-  transactions CompensationPaymentTransaction[]
+  entitlements              LandownerCompensation[]
+  transactions              CompensationPaymentTransaction[]
 
   @@index([projectId])
   @@index([parcelId])
@@ -826,29 +817,29 @@ model CompensationAssessment {
 }
 
 model LandownerCompensation {
-  id                    String                    @id @default(uuid())
+  id                    String                           @id @default(uuid())
   assessmentId          String
-  assessment            CompensationAssessment    @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  assessment            CompensationAssessment           @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   parcelId              String
-  parcel                Parcel                    @relation(fields: [parcelId], references: [id], onDelete: Restrict)
+  parcel                Parcel                           @relation(fields: [parcelId], references: [id], onDelete: Restrict)
   landownerId           String
-  landowner             Landowner                 @relation(fields: [landownerId], references: [id], onDelete: Restrict)
-  ownershipShare        Decimal                   @db.Decimal(5, 4) // e.g. 0.5000 (50%)
-  eligibleAreaHectares  Decimal                   @db.Decimal(12, 4)
-  marketValueShareInr   Decimal                   @default(0.0) @db.Decimal(18, 2)
-  solatiumShareInr      Decimal                   @default(0.0) @db.Decimal(18, 2)
-  additionalBenefitsInr Decimal                   @default(0.0) @db.Decimal(18, 2)
-  deductionsInr         Decimal                   @default(0.0) @db.Decimal(18, 2)
-  payableAmountInr      Decimal                   @default(0.0) @db.Decimal(18, 2)
-  disbursedAmountInr    Decimal                   @default(0.0) @db.Decimal(18, 2)
-  pendingAmountInr      Decimal                   @default(0.0) @db.Decimal(18, 2)
-  paymentStatus         CompensationPaymentStatus @default(PENDING)
+  landowner             Landowner                        @relation(fields: [landownerId], references: [id], onDelete: Restrict)
+  ownershipShare        Decimal                          @db.Decimal(5, 4) // e.g. 0.5000 (50%)
+  eligibleAreaHectares  Decimal                          @db.Decimal(12, 4)
+  marketValueShareInr   Decimal                          @default(0.0) @db.Decimal(18, 2)
+  solatiumShareInr      Decimal                          @default(0.0) @db.Decimal(18, 2)
+  additionalBenefitsInr Decimal                          @default(0.0) @db.Decimal(18, 2)
+  deductionsInr         Decimal                          @default(0.0) @db.Decimal(18, 2)
+  payableAmountInr      Decimal                          @default(0.0) @db.Decimal(18, 2)
+  disbursedAmountInr    Decimal                          @default(0.0) @db.Decimal(18, 2)
+  pendingAmountInr      Decimal                          @default(0.0) @db.Decimal(18, 2)
+  paymentStatus         CompensationPaymentStatus        @default(PENDING)
   bankReferenceMasked   String? // e.g. "SBI A/C •••• 4821 (PFMS Mapped)"
   remarks               String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  createdAt             DateTime                         @default(now())
+  updatedAt             DateTime                         @updatedAt
 
-  transactions CompensationPaymentTransaction[]
+  transactions          CompensationPaymentTransaction[]
 
   @@unique([assessmentId, landownerId])
   @@index([assessmentId])
@@ -886,49 +877,48 @@ model CompensationPaymentTransaction {
 // ==============================================================================
 // 9. POSSESSION & SECTION 38 DOMAIN
 // ==============================================================================
-
 model PossessionRecord {
-  id                       String                  @id @default(uuid())
+  id                       String                    @id @default(uuid())
   projectId                String
-  project                  Project                 @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project                  Project                   @relation(fields: [projectId], references: [id], onDelete: Restrict)
   parcelId                 String
-  parcel                   Parcel                  @relation(fields: [parcelId], references: [id], onDelete: Restrict)
-  possessionStatus         PossessionStatus        @default(POSSESSION_PENDING)
-  possessionType           PossessionType          @default(STATUTORY)
-  slaStatus                WorkflowSlaStatus       @default(ON_TRACK)
-  landAreaHectares         Decimal                 @db.Decimal(12, 4)
+  parcel                   Parcel                    @relation(fields: [parcelId], references: [id], onDelete: Restrict)
+  possessionStatus         PossessionStatus          @default(POSSESSION_PENDING)
+  possessionType           PossessionType            @default(STATUTORY)
+  slaStatus                WorkflowSlaStatus         @default(ON_TRACK)
+  landAreaHectares         Decimal                   @db.Decimal(12, 4)
   landClassification       String
   assignedOfficerId        String
-  assignedOfficer          User                    @relation("AssignedOfficerPossessions", fields: [assignedOfficerId], references: [id], onDelete: Restrict)
+  assignedOfficer          User                      @relation("AssignedOfficerPossessions", fields: [assignedOfficerId], references: [id], onDelete: Restrict)
   scheduledDate            DateTime?
   noticeDate               DateTime?
   noticeReference          String?
   noticeDocumentId         String?
-  noticeDocument           Document?               @relation("PossessionNoticeDocuments", fields: [noticeDocumentId], references: [id], onDelete: SetNull)
+  noticeDocument           Document?                 @relation("PossessionNoticeDocuments", fields: [noticeDocumentId], references: [id], onDelete: SetNull)
   siteVerificationDate     DateTime?
   siteVerificationOfficer  String?
   siteVerificationResult   SiteVerificationResult?
-  siteObservations         String?                 @db.Text
+  siteObservations         String?                   @db.Text
   possessionDate           DateTime?
   certificateId            String?
   certificateDocumentId    String?
-  certificateDocument      Document?               @relation("PossessionCertificateDocuments", fields: [certificateDocumentId], references: [id], onDelete: SetNull)
+  certificateDocument      Document?                 @relation("PossessionCertificateDocuments", fields: [certificateDocumentId], references: [id], onDelete: SetNull)
   certificateDate          DateTime?
-  compensationStatus       String                  @default("PENDING")
-  totalCompensationInr     Decimal                 @default(0.0) @db.Decimal(18, 2)
-  disbursedCompensationInr Decimal                 @default(0.0) @db.Decimal(18, 2)
-  pendingCompensationInr   Decimal                 @default(0.0) @db.Decimal(18, 2)
-  readinessStatus          String                  @default("READY") // READY, CONDITIONAL, BLOCKED
+  compensationStatus       String                    @default("PENDING")
+  totalCompensationInr     Decimal                   @default(0.0) @db.Decimal(18, 2)
+  disbursedCompensationInr Decimal                   @default(0.0) @db.Decimal(18, 2)
+  pendingCompensationInr   Decimal                   @default(0.0) @db.Decimal(18, 2)
+  readinessStatus          String                    @default("READY") // READY, CONDITIONAL, BLOCKED
   holdReason               String?
   disputeReason            String?
   remarks                  String?
   metadata                 Json?
-  createdAt                DateTime                @default(now())
-  updatedAt                DateTime                @updatedAt
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
-  checklistItems PossessionChecklistItem[]
-  timeline       PossessionTimelineEvent[]
-  remarksList    PossessionRemark[]
+  checklistItems           PossessionChecklistItem[]
+  timeline                 PossessionTimelineEvent[]
+  remarksList              PossessionRemark[]
 
   @@unique([projectId, parcelId])
   @@index([projectId])
@@ -983,7 +973,6 @@ model PossessionRemark {
 // ==============================================================================
 // 10. REHABILITATION & RESETTLEMENT (R&R) DOMAIN
 // ==============================================================================
-
 model RAndRCase {
   id                        String                 @id @default(uuid())
   caseNumber                String                 @unique
@@ -1002,9 +991,9 @@ model RAndRCase {
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
 
-  affectedHouseholds AffectedHousehold[]
-  entitlements       RAndREntitlement[]
-  benefits           RAndRBenefit[]
+  affectedHouseholds        AffectedHousehold[]
+  entitlements              RAndREntitlement[]
+  benefits                  RAndRBenefit[]
 
   @@index([projectId])
   @@index([status])
@@ -1084,7 +1073,6 @@ model RAndRBenefit {
 // ==============================================================================
 // 11. NOTIFICATIONS DOMAIN
 // ==============================================================================
-
 model Notification {
   id          String           @id @default(uuid())
   recipientId String
@@ -1109,7 +1097,6 @@ model Notification {
 // ==============================================================================
 // 12. AUDIT ENGINE DOMAIN
 // ==============================================================================
-
 model AuditLog {
   id             String   @id @default(uuid())
   actorId        String?
@@ -1136,7 +1123,6 @@ model AuditLog {
 // ==============================================================================
 // 13. SYSTEM HEALTH & TELEMETRY
 // ==============================================================================
-
 model SystemHealth {
   id        String   @id @default(uuid())
   nodeName  String   @default("nlams-core-api")

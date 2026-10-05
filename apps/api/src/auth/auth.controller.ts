@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  Param,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -17,6 +18,8 @@ import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import {
   AuthResponseDto,
   MessageResponseDto,
@@ -132,5 +135,16 @@ export class AuthController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<UserResponseDto> {
     return this.authService.getMe(user.id);
+  }
+
+  @Post('impersonate/:userId')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Impersonate a user (Super Admin only)' })
+  async impersonate(
+    @CurrentUser('id') adminUserId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    return this.authService.impersonate(adminUserId, targetUserId);
   }
 }
